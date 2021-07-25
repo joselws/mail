@@ -9,3 +9,5 @@ The Back-end was given by the course staff, and I was asked to use JavaScript on
 - Reply emails
 
 On this projects I showcased the use of JavaScript to accomplish tasks on the front.
+
+The file where all these tasks were implemented is located on mail/static/mail/inbox.js.
