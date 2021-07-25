@@ -5,10 +5,12 @@ textarea {
 .email {
     margin: 2px 0px;
     border: 1px solid black;
+    border-radius: 5px;
     padding: 5px 10px;
     cursor: pointer;
 }
 
 .date {
     float: right;
+    padding: 0px 10px;
 }
