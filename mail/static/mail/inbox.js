@@ -4,48 +4,73 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#inbox').addEventListener('click', () => load_mailbox('inbox'));
   document.querySelector('#sent').addEventListener('click', () => load_mailbox('sent'));
   document.querySelector('#archived').addEventListener('click', () => load_mailbox('archive'));
-  document.querySelector('#compose').addEventListener('click', compose_email);
+  document.querySelector('#compose').addEventListener('click', () => compose_email());
   
   // By default, load the inbox
   load_mailbox('inbox');
-  
-  // Send email logic
-  document.querySelector('#compose-form').addEventListener('submit', () => {
-      // Submit an email
-      fetch('/emails', {
-        method: 'POST',
-        body: JSON.stringify({
-          // data from form
-          recipients: document.querySelector('#compose-recipients').value,
-          subject: document.querySelector('#compose-subject').value,
-          body: document.querySelector('#compose-body').value
-        })
-      })
-      .then(response => response.json())
-      .then(result => {
-          // Print result
-          alert(result.message);
-      })
-      .catch(error => {
-        alert(error.message);
-      });
-    });
 });
 
 
-function compose_email() {
+// access view with form to send new email
+function compose_email(email='') {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#read-email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
 
-  // Input fields
-  document.querySelector('#compose-recipients').value = '';
-  document.querySelector('#compose-subject').value = '';
-  document.querySelector('#compose-body').value = '';
+  // Get input fields
+  const recipients = document.querySelector('#compose-recipients');
+  const subject = document.querySelector('#compose-subject');
+  const body = document.querySelector('#compose-body');
+
+  // Input fields are pre-populated if the reply button is clicked
+  if (email) {
+    recipients.value = email.sender;
+
+    // Doesn't include "Re: " if the email has already been replied
+    if(email.subject.includes('Re: ')) {
+      subject.value = email.subject;
+    }
+    else {
+      subject.value = `Re: ${email.subject}`;
+    }
+
+    body.value = `${email.body}\nWritten by ${email.sender} at ${email.timestamp}\n\nReply: `;
+  }
+
+  // Input fields are empty if the compose button is clicked
+  else {
+    recipients.value = '';
+    subject.value = '';
+    body.value = '';
+  }
+
+  // Send email logic
+  document.querySelector('#compose-form').addEventListener('submit', () => {
+    // Submit an email
+    fetch('/emails', {
+      method: 'POST',
+      body: JSON.stringify({
+        // data from form
+        recipients: recipients.value,
+        subject: subject.value,
+        body: body.value
+      })
+    })
+    .then(response => response.json())
+    .then(result => {
+        // Print result
+        console.log(result);
+    })
+    .catch(error => {
+      console.log(error.message);
+    });
+  });
 }
 
+
+// Load all emails pertaining to the selected mailbox
 function load_mailbox(mailbox) {
   
   // Show the mailbox and hide other views
@@ -114,15 +139,15 @@ function readEmailView(emailId, mailbox) {
     const mail = document.createElement('div');
 
     const sender = document.createElement('p');
-    sender.innerHTML = `Sender: ${email.sender}`;
+    sender.innerHTML = `<strong>By:</strong> ${email.sender}`;
     mail.append(sender);
 
     const recipients = document.createElement('p');
-    recipients.innerHTML = `recipients: ${email.recipients}`;
+    recipients.innerHTML = `<strong>To:</strong> ${email.recipients}`;
     mail.append(recipients);
 
     const subject = document.createElement('p');
-    subject.innerHTML = `subject: ${email.subject}`;
+    subject.innerHTML = `<strong>Subject:</strong> ${email.subject}`;
     mail.append(subject);
 
     // Add an 'archive' button for emails in the inbox and archive mailbox
@@ -144,17 +169,30 @@ function readEmailView(emailId, mailbox) {
       mail.append(archive);
     }
 
-
     const timestamp = document.createElement('p');
-    timestamp.innerHTML = `timestamp: ${email.timestamp}`;
+    timestamp.innerHTML = `<strong>Sent at:</strong> ${email.timestamp}`;
     mail.append(timestamp);
 
-    const body = document.createElement('p');
-    body.innerHTML = `body: ${email.body}`;
+    const body = document.createElement('pre');
+    body.style.fontSize = 'inherit';
+    body.style.fontFamily = 'inherit';
+    body.innerHTML = email.body;
     mail.append(body);
+
+    // Add a reply button when viewing each email not in 'sent' mailbox
+    if (mailbox !== 'sent') {
+      const reply = document.createElement('button');
+      reply.className = "btn btn-sm btn-warning reply-button";
+      reply.innerHTML = 'Reply';
+      reply.addEventListener('click', () => {
+        compose_email(email);
+      });
+      mail.append(reply);
+    }
 
     document.querySelector('#read-email-view').append(mail);
   })
+
   .catch(error => console.log(error));
 
   // Mark the selected email as read, if not already
